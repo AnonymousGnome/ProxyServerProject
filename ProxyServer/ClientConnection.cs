@@ -58,7 +58,7 @@ namespace ProxyServer
                     }
                 }
                 Console.WriteLine("Raw Request Received...");
-                //Console.WriteLine(requestPayload);
+                Console.WriteLine(requestPayload);
 
                 string remoteHost = requestLines[0].Split(' ')[1].Replace("http://", "").Split('/')[0];
                 string requestFile = requestLines[0].Replace("http://", "").Replace(remoteHost, "");
@@ -72,23 +72,35 @@ namespace ProxyServer
                     requestPayload += EOL;
                 }
 
-                
+
                 IPAddress[] ips = Dns.GetHostAddresses(remoteHost.Split(':')[0]);
 
                 Socket destServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 if (remoteHost.Contains(':'))
-                    destServerSocket.Connect(ips[0], Convert.ToInt32(remoteHost.Split(':')[1]));
-                else
-                    destServerSocket.Connect(ips[0], 80);
-
-                if (destServerSocket.Connected)
                 {
-                    Console.WriteLine("Connection Established, Sending Request...");
-                    //Console.WriteLine("5:" + requestPayload + ":5");
-                    destServerSocket.Send(ASCIIEncoding.ASCII.GetBytes(requestPayload));
+                    destServerSocket.Connect(ips[0], Convert.ToInt32(remoteHost.Split(':')[1]));
+                    if (destServerSocket.Connected)
+                    {
+                        Console.WriteLine("Connection established...");
+                    }
                 }
                 else
-                    Console.WriteLine("Failure Establishing Connection...");
+                {
+                    destServerSocket.Connect(ips[0], 80);
+                    if (destServerSocket.Connected)
+                    {
+                        Console.WriteLine("Connection established on port 80...");
+                    }
+                }
+                
+                //else
+                //{
+                //    //Console.WriteLine("Failure establishing connection...");
+                //}
+
+                Console.WriteLine("Sending Request...");
+                //Console.WriteLine("5:" + requestPayload + ":5");
+                destServerSocket.Send(ASCIIEncoding.ASCII.GetBytes(requestPayload));
 
                 while(destServerSocket.Receive(responseBuffer) != 0)
                 {
