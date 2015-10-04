@@ -32,6 +32,7 @@ namespace ProxyServer
 
             string requestPayload = "";
             string requestTempLine = "";
+            string logLineItem = System.DateTime.Now.ToString("MMM dd yyyy hh:mm:ss ");
             List<string> requestLines = new List<string>();
             byte[] requestBuffer = new byte[1];
             byte[] responseBuffer = new byte[1];
@@ -58,9 +59,10 @@ namespace ProxyServer
                     }
                 }
                 Console.WriteLine("Raw Request Received...");
-                Console.WriteLine(requestPayload);
+                //Console.WriteLine(requestPayload);
 
                 string remoteHost = requestLines[0].Split(' ')[1].Replace("http://", "").Split('/')[0];
+                logLineItem += requestLines[0].Split(' ')[1] + " ";
                 string requestFile = requestLines[0].Replace("http://", "").Replace(remoteHost, "");
                 //Console.WriteLine(remoteHost + ":1");
                 requestLines[0] = requestFile;
@@ -70,7 +72,10 @@ namespace ProxyServer
                 {
                     requestPayload += line;
                     requestPayload += EOL;
+                    if(line.Contains("User-Agent"))
+                        logLineItem += line.Split(' ')[10].Split('/')[1];
                 }
+
 
 
                 IPAddress[] ips = Dns.GetHostAddresses(remoteHost.Split(':')[0]);
@@ -81,7 +86,7 @@ namespace ProxyServer
                     destServerSocket.Connect(ips[0], Convert.ToInt32(remoteHost.Split(':')[1]));
                     if (destServerSocket.Connected)
                     {
-                        Console.WriteLine("Connection established...");
+                        //Console.WriteLine("Connection established...");
                     }
                 }
                 else
@@ -89,7 +94,7 @@ namespace ProxyServer
                     destServerSocket.Connect(ips[0], 80);
                     if (destServerSocket.Connected)
                     {
-                        Console.WriteLine("Connection established on port 80...");
+                        //Console.WriteLine("Connection established on port 80...");
                     }
                 }
                 
@@ -98,7 +103,7 @@ namespace ProxyServer
                 //    //Console.WriteLine("Failure establishing connection...");
                 //}
 
-                Console.WriteLine("Sending Request...");
+                //Console.WriteLine("Sending Request...");
                 //Console.WriteLine("5:" + requestPayload + ":5");
                 destServerSocket.Send(ASCIIEncoding.ASCII.GetBytes(requestPayload));
 
@@ -108,6 +113,7 @@ namespace ProxyServer
                     this.clientSocket.Send(responseBuffer);
                 }
                 //Console.WriteLine(":6");
+                Console.WriteLine(logLineItem);
 
                 destServerSocket.Disconnect(false);
                 destServerSocket.Dispose();
@@ -116,8 +122,8 @@ namespace ProxyServer
             }
             catch(Exception e)
             {
-                Console.WriteLine("Error Occurred: " + e.Message);
-                Console.WriteLine(e.StackTrace);
+                //Console.WriteLine("Error Occurred: " + e.Message);
+                //Console.WriteLine(e.StackTrace);
             }
         }
     }
