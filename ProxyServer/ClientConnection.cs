@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.IO;
 
 namespace ProxyServer
 {
@@ -132,7 +133,7 @@ namespace ProxyServer
                     }
                 }
                 //Console.WriteLine(":6");
-                Console.WriteLine(logLineItem);
+                File.AppendAllText("E:\\CSCI 415\\Assignment 2\\ProxyServer\\ProxyServer\\proxy.log", logLineItem + EOL);
 
                 destServerSocket.Disconnect(false);
                 destServerSocket.Dispose();
