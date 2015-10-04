@@ -133,7 +133,7 @@ namespace ProxyServer
                     }
                 }
                 //Console.WriteLine(":6");
-                File.AppendAllText("E:\\CSCI 415\\Assignment 2\\ProxyServer\\ProxyServer\\proxy.log", logLineItem + EOL);
+                File.AppendAllText(@".\proxy.log", logLineItem + EOL);
 
                 destServerSocket.Disconnect(false);
                 destServerSocket.Dispose();
@@ -142,7 +142,7 @@ namespace ProxyServer
             }
             catch(Exception e)
             {
-                //Console.WriteLine("Error Occurred: " + e.Message);
+                Console.WriteLine("Error Occurred: " + e.Message);
                 //Console.WriteLine(e.StackTrace);
             }
         }
