@@ -107,10 +107,29 @@ namespace ProxyServer
                 //Console.WriteLine("5:" + requestPayload + ":5");
                 destServerSocket.Send(ASCIIEncoding.ASCII.GetBytes(requestPayload));
 
+                List<string> responseLines = new List<string>();
+                string responseTempLine = "";
                 while(destServerSocket.Receive(responseBuffer) != 0)
                 {
                     //Console.Write(ASCIIEncoding.ASCII.GetString(responseBuffer));
                     this.clientSocket.Send(responseBuffer);
+                    responseTempLine += ASCIIEncoding.ASCII.GetString(responseBuffer);
+
+                    if (responseTempLine.EndsWith(EOL))
+                    {
+                        responseLines.Add(responseTempLine.Trim());
+                        responseTempLine = "";
+                    }
+                }
+                
+                foreach(string line in responseLines)
+                {
+                    //Console.WriteLine(line);
+                    if (line.Contains("Content-Length"))
+                    {
+                        //Console.WriteLine(line);
+                        logLineItem += line.Split(':')[1];
+                    }
                 }
                 //Console.WriteLine(":6");
                 Console.WriteLine(logLineItem);
