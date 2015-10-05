@@ -10,11 +10,13 @@ namespace ProxyServer
 {
     class Program
     {
+        
+
         static void Main(string[] args)
         {
             ServerListener simpleHttpProxyServer = new ServerListener(9000);
             simpleHttpProxyServer.StartServer();
-            while(true)
+            while (true)
             {
                 simpleHttpProxyServer.AcceptConnection();
             }

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Caching;
 
 namespace ProxyServer
 {
@@ -12,9 +13,14 @@ namespace ProxyServer
     {
         private int listenPort;
         private TcpListener listener;
+        public static ObjectCache cache = MemoryCache.Default;
 
         public ServerListener(int port)
         {
+            foreach (var element in MemoryCache.Default)
+            {
+                MemoryCache.Default.Remove(element.Key);
+            }
             this.listenPort = port;
             this.listener = new TcpListener(IPAddress.Any, this.listenPort);
         }
