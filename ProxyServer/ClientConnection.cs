@@ -46,6 +46,7 @@ namespace ProxyServer
 
             try
             {
+                newRequest:
                 while(recvRequest)
                 {
                     this.clientSocket.Receive(requestBuffer);
@@ -86,7 +87,7 @@ namespace ProxyServer
                 if (cachedRequest == null)
                 {
                     CacheItemPolicy policy = new CacheItemPolicy();
-                    policy.AbsoluteExpiration = DateTimeOffset.Now.AddSeconds(60.0);
+                    policy.AbsoluteExpiration = DateTimeOffset.Now.AddSeconds(180.0);
 
                     //List<string> filePaths = new List<string>();
                     //string cachedFilePath = @"E:\CSCI 415\Assignment 2\ProxyServer\ProxyServer\bin\Debug\cacheText.txt";
@@ -153,9 +154,16 @@ namespace ProxyServer
 
                     if(responseBytes.Count != 0)
                         ServerListener.cache.Set(requestFile, responseBytes, policy);
-
-                    //destServerSocket.Disconnect(false);
-                    destServerSocket.Dispose();
+                    if (clientSocket.Receive(requestBuffer) == -1)
+                    {
+                        destServerSocket.Disconnect(false);
+                        destServerSocket.Dispose();
+                    }
+                    else
+                    {
+                        recvRequest = true;
+                        goto newRequest;
+                    }
                 }
                 else
                 {
@@ -169,13 +177,14 @@ namespace ProxyServer
                 //Console.WriteLine(":6");
                 File.AppendAllText(@".\proxy.log", logLineItem + EOL);
 
-                //this.clientSocket.Disconnect(false);
-                this.clientSocket.Dispose();
+                
             }
             catch(Exception e)
             {
                 //Console.WriteLine("Error Occurred: " + e.Message);
                 //Console.WriteLine(e.StackTrace);
+                this.clientSocket.Disconnect(false);
+                this.clientSocket.Dispose();
             }
         }
     }
