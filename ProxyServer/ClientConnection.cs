@@ -15,6 +15,7 @@ namespace ProxyServer
     class ClientConnection
     {
         private Socket clientSocket;
+        private int threadCount = 0;
 
         public ClientConnection(Socket client)
         {
@@ -46,7 +47,6 @@ namespace ProxyServer
 
             try
             {
-                newRequest:
                 while(recvRequest)
                 {
                     this.clientSocket.Receive(requestBuffer);
@@ -98,71 +98,77 @@ namespace ProxyServer
                     IPAddress[] ips = Dns.GetHostAddresses(remoteHost.Split(':')[0]);
 
                     Socket destServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    if (remoteHost.Contains(':'))
+                    try
                     {
-                        destServerSocket.Connect(ips[0], Convert.ToInt32(remoteHost.Split(':')[1]));
+                        if (remoteHost.Contains(':'))
+                        {
+                            destServerSocket.Connect(ips[0], Convert.ToInt32(remoteHost.Split(':')[1]));
+                            if (destServerSocket.Connected)
+                            {
+                                Console.WriteLine("Connection established...");
+                            }
+                        }
+                        else
+                        {
+                            destServerSocket.Connect(ips[0], 80);
+                            if (destServerSocket.Connected)
+                            {
+                                Console.WriteLine("Connection established on port 80...");
+                            }
+                        }
+                        //else
+                        //{
+                        //    //Console.WriteLine("Failure establishing connection...");
+                        //}
+
+                        //Console.WriteLine("Sending Request...");
+                        //Console.WriteLine("5:" + requestPayload + ":5");
+
+                        //Thread.Yield();
                         if (destServerSocket.Connected)
+                            destServerSocket.Send(ASCIIEncoding.ASCII.GetBytes(requestPayload));
+
+                        List<string> responseLines = new List<string>();
+                        List<byte[]> responseBytes = new List<byte[]>();
+                        string responseTempLine = "";
+                        Thread.Yield();
+                        while (destServerSocket.Receive(responseBuffer) != 0)
                         {
-                            Console.WriteLine("Connection established...");
+                            //Console.Write(ASCIIEncoding.ASCII.GetString(responseBuffer));
+                            this.clientSocket.Send(responseBuffer);
+                            responseBytes.Add(responseBuffer);
+                            responseTempLine += ASCIIEncoding.ASCII.GetString(responseBuffer);
+
+                            if (responseTempLine.EndsWith(EOL))
+                            {
+                                responseLines.Add(responseTempLine.Trim());
+                                responseTempLine = "";
+                            }
                         }
-                    }
-                    else
-                    {
-                        destServerSocket.Connect(ips[0], 80);
-                        if (destServerSocket.Connected)
-                        {
-                            Console.WriteLine("Connection established on port 80...");
-                        }
-                    }
 
-                    //else
-                    //{
-                    //    //Console.WriteLine("Failure establishing connection...");
-                    //}
-
-                    //Console.WriteLine("Sending Request...");
-                    //Console.WriteLine("5:" + requestPayload + ":5");
-                    if(destServerSocket.Connected)
-                        destServerSocket.Send(ASCIIEncoding.ASCII.GetBytes(requestPayload));
-
-                    List<string> responseLines = new List<string>();
-                    List<byte[]> responseBytes = new List<byte[]>();
-                    string responseTempLine = "";
-                    while (destServerSocket.Receive(responseBuffer) != 0)
-                    {
-                        //Console.Write(ASCIIEncoding.ASCII.GetString(responseBuffer));
-                        this.clientSocket.Send(responseBuffer);
-                        responseBytes.Add(responseBuffer);
-                        responseTempLine += ASCIIEncoding.ASCII.GetString(responseBuffer);
-
-                        if (responseTempLine.EndsWith(EOL))
-                        {
-                            responseLines.Add(responseTempLine.Trim());
-                            responseTempLine = "";
-                        }
-                    }
-
-                    foreach (string line in responseLines)
-                    {
-                        //Console.WriteLine(line);
-                        if (line.Contains("Content-Length"))
+                        foreach (string line in responseLines)
                         {
                             //Console.WriteLine(line);
-                            logLineItem += line.Split(':')[1];
+                            if (line.Contains("Content-Length"))
+                            {
+                                //Console.WriteLine(line);
+                                logLineItem += line.Split(':')[1];
+                            }
                         }
-                    }
 
-                    if(responseBytes.Count != 0)
-                        ServerListener.cache.Set(requestFile, responseBytes, policy);
-                    if (clientSocket.Receive(requestBuffer) == -1)
-                    {
-                        destServerSocket.Disconnect(false);
+                        if (responseBytes.Count != 0)
+                            ServerListener.cache.Set(requestFile, responseBytes, policy);
+
+                        destServerSocket.Close();
                         destServerSocket.Dispose();
                     }
-                    else
+                    catch(Exception e)
                     {
-                        recvRequest = true;
-                        goto newRequest;
+                        Console.WriteLine("Inner Catch: " + e.Message);
+                        destServerSocket.Close();
+                        destServerSocket.Dispose();
+                        this.clientSocket.Close();
+                        this.clientSocket.Dispose();
                     }
                 }
                 else
@@ -175,16 +181,18 @@ namespace ProxyServer
                     }
                 }
                 //Console.WriteLine(":6");
-                File.AppendAllText(@".\proxy.log", logLineItem + EOL);
+                //Thread.Yield();
+                //File.AppendAllText(@".\proxy.log", logLineItem + EOL);
 
-                
+                this.clientSocket.Close();
+                this.clientSocket.Dispose();
             }
             catch(Exception e)
             {
-                //Console.WriteLine("Error Occurred: " + e.Message);
-                //Console.WriteLine(e.StackTrace);
-                this.clientSocket.Disconnect(false);
+                this.clientSocket.Close();
                 this.clientSocket.Dispose();
+                Console.WriteLine("Error Occurred: " + e.Message);
+                Console.WriteLine(e.StackTrace);
             }
         }
     }
